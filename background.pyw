@@ -51,13 +51,13 @@ def get_image(img_location):
     r = requests.get(site_link + img_location)
     pattern = re.compile('href.*?image.*\.[a-z]{3}')
     img_location = pattern.search(r.text)
-
-    assert type(img_location) is str, "no image was found, the nasa likely has a video as the potd today"
+    
+    assert type(img_location) is re.Match, "no image was found, the nasa likely has a video as the potd today"
 
     img_location = img_location.group().replace('href="', '')
     image_name = str(int(time.time())) + ".jpg"
     
-    file = wget.download(link + img_location, out='/Users/hvssz/Documents/potd/' + image_name) # string encoding weirdness
+    file = wget.download(site_link + img_location, out='/Users/hvssz/Documents/potd/' + image_name) # string encoding weirdness
 
     return image_name
 
