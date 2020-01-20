@@ -49,7 +49,7 @@ def log(message):
     date = get_formatted_date(timestamp=time.time(), formatting='%Y-%m-%d %H:%M:%S')
     try:
         with open('error.log', 'a+') as f:
-            f.write(f'{date} -- {message}')
+            f.write(f'{date} -- {message}\n')
     except IOError as e:
         print(str(e))
 
@@ -70,13 +70,13 @@ def get_image(img_location):
     return image_name
 
 if __name__ == '__main__':
-    if '--random' not in sys.argv[1]:
+    if len(sys.argv) > 1 and '--random' in sys.argv[1]:
+        img_location = f"apod/ap{get_date()}.html"
+    else:
         if todays_image_downloaded(): quit()
         
         img_location = "apod/astropix.html"
-    else:
-        print("aaa")
-        img_location = f"apod/ap{get_date()}.html"
+        
     
     delete_old_images()
     
