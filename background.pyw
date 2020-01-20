@@ -13,11 +13,11 @@ def set_wallpaper(path):
     SPI_SETDESKWALLPAPER = 20 
     ctypes.windll.user32.SystemParametersInfoW(SPI_SETDESKWALLPAPER, 0, path, 3)
 
-def get_formatted_date(timestamp):
-    return datetime.utcfromtimestamp(timestamp).strftime('%Y%m%d')
+def get_formatted_date(timestamp, formatting='%Y%m%d'):
+    return datetime.utcfromtimestamp(timestamp).strftime(formatting)
 
 def get_date():
-    startFrom = 1262304000 # 1st of Jan, 2010
+    startFrom = 1420070400 # 1st of Jan, 2010
     endAt = int(time.time())
     
     randomStamp = randint(startFrom, endAt)
@@ -45,6 +45,14 @@ def todays_image_downloaded():
         
         return (todays_date == file_date)
 
+def log(message):
+    date = get_formatted_date(timestamp=time.time(), formatting='%Y-%m-%d %H:%M:%S')
+    try:
+        with open('error.log', 'a+') as f:
+            f.write(f'{date} -- {message}')
+    except IOError as e:
+        print(str(e))
+
 def get_image(img_location):
     site_link = 'https://apod.nasa.gov/'
     
@@ -52,7 +60,7 @@ def get_image(img_location):
     pattern = re.compile('href.*?image.*\.[a-z]{3}')
     img_location = pattern.search(r.text)
     
-    assert type(img_location) is re.Match, "no image was found, the nasa likely has a video as the potd today"
+    assert type(img_location) is re.Match, "no image was found, nasa likely has a video as the potd today"
 
     img_location = img_location.group().replace('href="', '')
     image_name = str(int(time.time())) + ".jpg"
@@ -62,15 +70,19 @@ def get_image(img_location):
     return image_name
 
 if __name__ == '__main__':
-    if 'random' not in sys.argv:
+    if '--random' not in sys.argv[1]:
         if todays_image_downloaded(): quit()
         
         img_location = "apod/astropix.html"
     else:
-        img_location = "apod/ap" + get_date() + ".html"
-
+        print("aaa")
+        img_location = f"apod/ap{get_date()}.html"
+    
     delete_old_images()
-
-    image_name = get_image(img_location)
+    
+    try:
+        image_name = get_image(img_location)
+    except AssertionError as e:
+        log(str(e))
     
     set_wallpaper(appenv.potd_dir + image_name)
