@@ -1,41 +1,42 @@
-import ctypes
-import os
-import requests
-import re
-import time
-import wget
-import sys
-import appenv
+import ctypes, os, requests, re, time, wget, sys, tempfile
+from system import System
 from random import randint
 from datetime import datetime
 
+# Directory where the downloaded images will be stored 
+potd_dir = tempfile.gettempdir() + "/potd/"
+s = System()
+
 def set_wallpaper(path):
-    SPI_SETDESKWALLPAPER = 20 
-    ctypes.windll.user32.SystemParametersInfoW(SPI_SETDESKWALLPAPER, 0, path, 3)
+    s.set_wallpaper(file_loc=path, first_run=True)
 
 def get_formatted_date(timestamp, formatting='%Y%m%d'):
     return datetime.utcfromtimestamp(timestamp).strftime(formatting)
 
+# This is used to get a random image from the NASA APOD archive
+# The images there are addressable by their post date timestamp
 def get_date():
     startFrom = 1420070400 # 1st of Jan, 2010
     endAt = int(time.time())
     
     randomStamp = randint(startFrom, endAt)
-
     date_string = get_formatted_date(randomStamp)
     
     return date_string[2:]
 
 def get_files():
-    return os.listdir(appenv.potd_dir)
-
+    return os.listdir(potd_dir)
+    
 def delete_old_images():
     for file in get_files():
-        os.remove(appenv.potd_dir + file)
+        os.remove(potd_dir + file)
 
 def todays_image_downloaded():
-    files = get_files()
-    
+    try:
+        files = get_files()
+    except FileNotFoundError:
+        return False
+
     if len(files) == 0:
         return False
     else:
@@ -57,7 +58,7 @@ def get_image(img_location):
     site_link = 'https://apod.nasa.gov/'
     
     r = requests.get(site_link + img_location)
-    pattern = re.compile('href.*?image.*\.[a-z]{3}')
+    pattern = re.compile(r'href.*?image.*\.[a-z]{3}')
     img_location = pattern.search(r.text)
     
     assert type(img_location) is re.Match, "no image was found, nasa likely has a video as the potd today"
@@ -65,11 +66,11 @@ def get_image(img_location):
     img_location = img_location.group().replace('href="', '')
     image_name = str(int(time.time())) + ".jpg"
     
-    file = wget.download(site_link + img_location, out='/Users/hvssz/Documents/potd/' + image_name) # string encoding weirdness
+    wget.download(site_link + img_location, out=potd_dir + image_name)
 
     return image_name
 
-if __name__ == '__main__':
+def run():
     if len(sys.argv) > 1 and '--random' in sys.argv[1]:
         img_location = f"apod/ap{get_date()}.html"
     else:
@@ -77,12 +78,19 @@ if __name__ == '__main__':
         
         img_location = "apod/astropix.html"
         
-    
-    delete_old_images()
-    
     try:
+        delete_old_images()
+
         image_name = get_image(img_location)
+        set_wallpaper(path=potd_dir + image_name)
+    except FileNotFoundError:
+        os.makedirs(name=potd_dir, exist_ok=False)
+        run()
     except AssertionError as e:
         log(str(e))
+
+
+if __name__ == '__main__':
+    run()
     
-    set_wallpaper(appenv.potd_dir + image_name)
+    
