@@ -3,7 +3,7 @@ from system import System
 from random import randint
 from datetime import datetime
 
-# Directory where the downloaded images will be stored 
+# Directory where the downloaded images will be stored
 logfile_path = os.path.dirname(os.path.abspath(__file__)) + "/info.log"
 potd_dir = tempfile.gettempdir() + "/potd/"
 s = System()
@@ -19,15 +19,15 @@ def get_formatted_date(timestamp, formatting='%Y%m%d'):
 def get_date():
     startFrom = 1420070400 # 1st of Jan, 2010
     endAt = int(time.time())
-    
+
     randomStamp = randint(startFrom, endAt)
     date_string = get_formatted_date(randomStamp)
-    
+
     return date_string[2:]
 
 def get_files():
     return os.listdir(potd_dir)
-    
+
 def delete_old_images():
     for file in get_files():
         os.remove(potd_dir + file)
@@ -44,7 +44,7 @@ def todays_image_downloaded():
         file_date = int(files[0].replace('.jpg', ''))
         file_date = get_formatted_date(file_date)
         todays_date = get_formatted_date(int(time.time()))
-        
+
         return (todays_date == file_date)
 
 def log(message):
@@ -57,16 +57,16 @@ def log(message):
 
 def get_image(img_location):
     site_link = 'https://apod.nasa.gov/'
-    
+
     r = requests.get(site_link + img_location)
     pattern = re.compile(r'href.*?image.*\.[a-z]{3}')
     img_location = pattern.search(r.text)
-    
+
     assert type(img_location) is re.Match, "no image was found, nasa likely has a video as the potd today"
 
     img_location = img_location.group().replace('href="', '')
     image_name = str(int(time.time())) + ".jpg"
-    
+
     wget.download(site_link + img_location, out=potd_dir + image_name)
 
     return image_name
@@ -99,9 +99,7 @@ if __name__ == '__main__':
         if todays_image_downloaded():
             log("An image is already downloaded")
             quit()
-        
+
         img_location = "apod/astropix.html"
 
     run(img_location)
-    
-    

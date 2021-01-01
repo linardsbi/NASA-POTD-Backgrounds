@@ -1,6 +1,13 @@
 import sys, os, re, subprocess, configparser, codecs, ctypes
 from gi.repository import Gio
 class System:
+    def try_set_xwallpaper(self, file_loc):
+        try:
+            subprocess.call(["xwallpaper", "--zoom", file_loc])
+            return True
+        except FileNotFoundError:
+            return False
+
     def get_desktop_environment(self):
         #From http://stackoverflow.com/questions/2035657/what-is-my-current-desktop-environment
         # and http://ubuntuforums.org/showthread.php?t=652320
@@ -14,7 +21,7 @@ class System:
             desktop_session = os.environ.get("DESKTOP_SESSION")
             if desktop_session is not None: #easier to match if we doesn't have  to deal with caracter cases
                 desktop_session = desktop_session.lower()
-                if desktop_session in ["gnome","unity", "cinnamon", "mate", "xfce4", "lxde", "fluxbox", 
+                if desktop_session in ["gnome","unity", "cinnamon", "mate", "xfce4", "lxde", "fluxbox",
                                         "blackbox", "openbox", "icewm", "jwm", "afterstep","trinity", "kde"]:
                     return desktop_session
                 ## Special cases ##
@@ -23,11 +30,11 @@ class System:
                 elif "xfce" in desktop_session or desktop_session.startswith("xubuntu"):
                     return "xfce4"
                 elif desktop_session.startswith("ubuntu"):
-                    return "unity"       
+                    return "unity"
                 elif desktop_session.startswith("lubuntu"):
-                    return "lxde" 
-                elif desktop_session.startswith("kubuntu"): 
-                    return "kde" 
+                    return "lxde"
+                elif desktop_session.startswith("kubuntu"):
+                    return "kde"
                 elif desktop_session.startswith("razor"): # e.g. razorkwin
                     return "razor-qt"
                 elif desktop_session.startswith("wmaker"): # e.g. wmaker-common
@@ -58,10 +65,16 @@ class System:
 
     def set_wallpaper(self,file_loc, first_run):
         #From https://stackoverflow.com/a/21213504
-        # Note: There are two common Linux desktop environments where 
-        # I have not been able to set the desktop background from 
+        # Note: There are two common Linux desktop environments where
+        # I have not been able to set the desktop background from
         # command line: KDE, Enlightenment
+
+        # if xwallpaper is installed, skip all the other checks
+        if (self.try_set_xwallpaper(file_loc)):
+            return True
+
         desktop_env = self.get_desktop_environment()
+
         try:
             if desktop_env in ["gnome", "unity", "cinnamon"]:
                 uri = "'file://%s'" % file_loc
@@ -111,7 +124,7 @@ class System:
                 if first_run:
                     desktop_conf = configparser.ConfigParser()
                     # Development version
-                    desktop_conf_file = os.path.join(self.get_config_dir("razor"),"desktop.conf") 
+                    desktop_conf_file = os.path.join(self.get_config_dir("razor"),"desktop.conf")
                     if os.path.isfile(desktop_conf_file):
                         config_option = r"screens\1\desktops\1\wallpaper"
                     else:
@@ -127,11 +140,11 @@ class System:
                         pass
                 else:
                     #TODO: reload desktop when possible
-                    pass 
+                    pass
             elif desktop_env in ["fluxbox","jwm","openbox","afterstep"]:
                 #http://fluxbox-wiki.org/index.php/Howto_set_the_background
-                # used fbsetbg on jwm too since I am too lazy to edit the XML configuration 
-                # now where fbsetbg does the job excellent anyway. 
+                # used fbsetbg on jwm too since I am too lazy to edit the XML configuration
+                # now where fbsetbg does the job excellent anyway.
                 # and I have not figured out how else it can be set on Openbox and AfterSTep
                 # but fbsetbg works excellent here too.
                 try:
@@ -156,7 +169,7 @@ class System:
                 args = "wmsetbg -s -u %s" % file_loc
                 subprocess.Popen(args,shell=True)
             elif desktop_env=="windows":
-                SPI_SETDESKWALLPAPER = 20 
+                SPI_SETDESKWALLPAPER = 20
                 ctypes.windll.user32.SystemParametersInfoW(SPI_SETDESKWALLPAPER, 0, file_loc, 3)
             else:
                 if first_run: #don't spam the user with the same message over and over again
@@ -170,12 +183,12 @@ class System:
 
     def get_config_dir(self, app_name):
         if "XDG_CONFIG_HOME" in os.environ:
-            confighome = os.environ['XDG_CONFIG_HOME'] 
+            confighome = os.environ['XDG_CONFIG_HOME']
         elif "APPDATA" in os.environ: # On Windows
-            confighome = os.environ['APPDATA'] 
+            confighome = os.environ['APPDATA']
         else:
             try:
-                from xdg import BaseDirectory   
+                from xdg import BaseDirectory
                 confighome =  BaseDirectory.xdg_config_home
             except ImportError: # Most likely a Linux/Unix system anyway
                 confighome =  os.path.join(self.get_home_dir(),".config")
